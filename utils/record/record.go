@@ -378,6 +378,13 @@ func (e *EventRecorderAdapter) sendNotifications(notificationsAPI api.API, objec
 		return nil
 	}
 
+	// Skip triggers subscribed by annotation but not defined in this config (e.g. namespaced
+	// configs); avoids RunTrigger's "trigger ... is not configured" error.
+	if _, ok := cfg.Triggers[trigger]; !ok {
+		logCtx.Debugf("skipping unconfigured trigger %q", trigger)
+		return nil
+	}
+
 	objMap, err := toObjectMap(object)
 	if err != nil {
 		return []error{err}

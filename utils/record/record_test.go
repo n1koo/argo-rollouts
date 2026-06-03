@@ -431,21 +431,17 @@ func TestSendNotificationsNoTrigger(t *testing.T) {
 
 	mockCtrl := gomock.NewController(t)
 	mockAPI := mocks.NewMockAPI(mockCtrl)
-	cr := []triggers.ConditionResult{{
-		Key:       "1." + hash(""),
-		Triggered: false,
-		Templates: []string{"my-template"},
-	}}
-	mockAPI.EXPECT().RunTrigger(gomock.Any(), gomock.Any()).Return(cr, errors.New("trigger 'on-missing-reason' is not configured")).AnyTimes()
+	// on-missing-reason is subscribed but undefined in config -> skipped before RunTrigger.
 	mockAPI.EXPECT().GetConfig().Return(api.Config{
 		Triggers: map[string][]triggers.Condition{"on-foo-reason": {triggers.Condition{Send: []string{"my-template"}}}}}).AnyTimes()
-	mockAPI.EXPECT().Send(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("failed to send")).Times(0)
+	mockAPI.EXPECT().RunTrigger(gomock.Any(), gomock.Any()).Times(0)
+	mockAPI.EXPECT().Send(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 	apiFactory := &mocks.FakeFactory{Api: mockAPI}
 	rec := NewFakeEventRecorder()
 	rec.EventRecorderAdapter.apiFactory = apiFactory
 
 	err := rec.sendNotifications(mockAPI, &r, EventOptions{EventReason: "MissingReason"})
-	assert.Len(t, err, 1)
+	assert.Len(t, err, 0)
 }
 
 func createAnalysisRunInformer(ars []*v1alpha1.AnalysisRun) argoinformers.AnalysisRunInformer {
